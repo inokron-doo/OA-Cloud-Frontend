@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import "tailwindcss";
+
+@layer utilities {
+  .scrollbar-custom::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: rgba(0, 188, 125, 0.7);
+    border-radius: 10px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+  }
+}
+
+
+.farm_slider .swiper-button-next {
+    width: 30px;
+    height: 30px;
+    background: white;
+    border: 1px solid gray;
+    border-radius: 100px;
+    padding: 6px;
+    color: gray;
+}
+
+.farm_slider .swiper-button-prev {
+    width: 30px;
+    height: 30px;
+    background: white;
+    border: 1px solid gray;
+    border-radius: 100px;
+    padding: 6px;
+    color: gray;
+}
+
+.farm_slider .swiper {
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+
+.farm_slider .swiper-pagination {
+  bottom: -25px !important;
+}
+
+.farm_slider .swiper-pagination span.swiper-pagination-bullet.swiper-pagination-bullet-active {
+  background: gray;
+}
