@@ -22,6 +22,7 @@ import type {
 import SkeletonChart from "./SkeletonChart";
 import { useBarn } from "../context/BarnContext";
 import { getAnchorTime } from "../api/anchorTime";
+import { useTouchDismissTooltip } from "../hooks/useTouchDismissTooltip";
 
 type FeedingEventMarker = {
   time: number; // window start (or point time for detected refills)
@@ -210,6 +211,7 @@ const FeedingChart: React.FC = () => {
   const [refills, setRefills] = useState<FeedingEventMarker[]>([]);
   const [isChartLoading, setIsChartLoading] = useState<boolean>(false);
   const [chartTitle, setChartTitle] = useState<string>("");
+  const { active: tooltipActive, handlers: tooltipHandlers } = useTouchDismissTooltip();
 
   // --- Fetch Locations ---
   useEffect(() => {
@@ -529,7 +531,8 @@ const FeedingChart: React.FC = () => {
                 right: 0,
                 left: -30,
                 bottom: 0,
-              }}>
+              }}
+              {...tooltipHandlers}>
               <CartesianGrid strokeDasharray="3 3" vertical stroke="#F0F0F0" />
 
               {(() => {
@@ -581,6 +584,7 @@ const FeedingChart: React.FC = () => {
               />
 
               <Tooltip
+                active={tooltipActive}
                 labelFormatter={(l) => formatDateTime(l)}
                 formatter={(v: any, name?: string) => [
                   `${v}%`,

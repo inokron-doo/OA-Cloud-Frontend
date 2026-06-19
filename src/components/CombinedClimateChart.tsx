@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { FiClock } from "react-icons/fi";
 import SkeletonChart from "./SkeletonChart";
+import { useTouchDismissTooltip } from "../hooks/useTouchDismissTooltip";
 
 interface CombinedClimateChartProps {
     data: any[];
@@ -22,6 +23,8 @@ interface CombinedClimateChartProps {
 
 const CombinedClimateChart: React.FC<CombinedClimateChartProps> = ({ data, isLoading, domainMin, domainMax }) => {
     const { t } = useTranslation();
+
+    const { active: tooltipActive, handlers: tooltipHandlers } = useTouchDismissTooltip();
 
     const nowMs = useMemo(() => {
         const now = new Date();
@@ -68,6 +71,7 @@ const CombinedClimateChart: React.FC<CombinedClimateChartProps> = ({ data, isLoa
                     <ComposedChart
                         data={data}
                         margin={{ top: 20, right: 0, left: -20, bottom: 0 }}
+                        {...tooltipHandlers}
                     >
                         <CartesianGrid strokeDasharray="3 3" vertical stroke="#F0F0F0" />
                         
@@ -125,6 +129,7 @@ const CombinedClimateChart: React.FC<CombinedClimateChartProps> = ({ data, isLoa
                         />
 
                         <Tooltip
+                            active={tooltipActive}
                             contentStyle={{
                                 borderRadius: "12px",
                                 border: "1px solid #E5E7EB",
