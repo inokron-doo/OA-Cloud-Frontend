@@ -27,6 +27,7 @@ type FeedingEventMarker = {
   time: number; // window start (or point time for detected refills)
   endTime: number | null; // window end; null => render as a single-point marker
   quantityKg: number | null;
+  title: string | null; // used to correlate a predicted refill with its planned window
 };
 
 // The chart strips timezone offsets from reading timestamps to plot the stored
@@ -71,6 +72,7 @@ const normalizeFeedingEvents = (
         time: start,
         endTime: end !== null && Number.isFinite(end) && end > start ? end : null,
         quantityKg: typeof quantity === "number" ? quantity : null,
+        title: event?.feeding_activity?.title ?? event?.title ?? null,
       };
     }),
 
@@ -88,6 +90,7 @@ const normalizeFeedingEvents = (
         time: start,
         endTime: null,
         quantityKg: typeof quantity === "number" ? quantity : null,
+        title: event?.title ?? event?.feeding_activity?.title ?? null,
       };
     }),
   ].filter((event) => Number.isFinite(event.time));
@@ -96,12 +99,30 @@ const normalizeFeedingEvents = (
 
   const bands = normalized.filter((e) => e.endTime !== null);
 
-  // A detected/predicted refill that lands inside a planned window is the same
+  // A detected/predicted refill that belongs to a planned window is the same
   // feeding — absorb it into the band instead of drawing a second marker.
+  // The prediction engine derives applied_refills from the same scheduled
+  // calendar events but applies the refill at the first forecast step at/after
+  // the window ends (when the level bottoms out), so the point typically lands a
+  // little PAST band.endTime even though it's the identical event. Match either
+  // by the point falling inside the window, or by a shared title within a
+  // tolerance after the window end.
+  const ABSORB_TOLERANCE_MS = 2 * 60 * 60 * 1000;
   const points = normalized
     .filter((e) => e.endTime === null)
     .filter(
-      (p) => !bands.some((b) => p.time >= b.time && p.time <= (b.endTime as number)),
+      (p) =>
+        !bands.some((b) => {
+          const bandEnd = b.endTime as number;
+          const inside = p.time >= b.time && p.time <= bandEnd;
+          const sameTitledNearby =
+            p.title != null &&
+            b.title != null &&
+            p.title === b.title &&
+            p.time >= b.time &&
+            p.time <= bandEnd + ABSORB_TOLERANCE_MS;
+          return inside || sameTitledNearby;
+        }),
     );
 
   const merged = [...bands, ...points].sort((a, b) => a.time - b.time);

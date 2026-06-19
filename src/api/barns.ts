@@ -38,11 +38,12 @@ export const currentWeather = async (lat: number, lon: number) => {
 };
 
 // weather history
-export const weatherHistory = async (barnId: string, hours?: number, start_time?: string, end_time?: string) => {
+export const weatherHistory = async (barnId: string, hours?: number, start_time?: string, end_time?: string, bucket_minutes?: number) => {
     const params: any = {};
     if (hours) params.hours = hours;
     if (start_time) params.start_time = start_time;
     if (end_time) params.end_time = end_time;
+    if (bucket_minutes) params.bucket_minutes = bucket_minutes;
 
     const response = await api.get(`/weather/${barnId}/history`, { params });
     // console.log("Weather History Data", response.data);

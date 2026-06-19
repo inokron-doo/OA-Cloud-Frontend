@@ -24,7 +24,8 @@ const CombinedClimateChart: React.FC<CombinedClimateChartProps> = ({ data, isLoa
     const { t } = useTranslation();
 
     const nowMs = useMemo(() => {
-        return Date.now();
+        const now = new Date();
+        return now.getTime() + now.getTimezoneOffset() * 60000;
     }, []);
 
     const formatTime = (timestamp: any) => {

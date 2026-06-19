@@ -81,7 +81,7 @@ const ClimateSection = () => {
             };
 
             const [historyRes, forecastRes] = await Promise.all([
-                weatherHistory(climateBarnId, undefined, toNominalUTC(anchorDomain[0]), toNominalUTC(anchorDomain[1])),
+                weatherHistory(climateBarnId, undefined, toNominalUTC(anchorDomain[0]), toNominalUTC(anchorDomain[1]), 15), // 15min buckets
                 weatherForecast(climateBarnId, undefined, toNominalUTC(anchorDomain[0]), toNominalUTC(anchorDomain[1]))
             ]);
 
