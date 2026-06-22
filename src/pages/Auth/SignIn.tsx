@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import type { SignInData } from "../../interface/auth/auth";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { IoEye, IoEyeOff } from "react-icons/io5";
 import auth_img from "../../assets/auth_img.png"
 
@@ -67,9 +67,6 @@ const SignIn = () => {
           <div className="w-full h-full rounded-[48px] bg-white p-8">
             <div className="max-w-96 mx-auto flex flex-col justify-center h-full">
               <h2 className="mb-3 text-4xl font-medium text-[#202020]">Sign in</h2>
-              <p className="text-sm font-medium text-[#202020] mb-5">
-                New user? <Link to="/signup" className="text-[#00A63E]">Create an account</Link>
-              </p>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
@@ -110,11 +107,6 @@ const SignIn = () => {
                   <label className="absolute left-0 top-2 text-[#84818A] text-sm transition-all duration-200 peer-focus:-top-3.5 peer-focus:text-xs peer-[:not(:placeholder-shown)]:-top-3.5 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">
                     Password
                   </label>
-                  <div className="w-full mt-1">
-                    <Link to="/forgot-password" className="text-right text-[#84818A] text-sm w-full block">
-                      Forgot password?
-                    </Link>
-                  </div>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}

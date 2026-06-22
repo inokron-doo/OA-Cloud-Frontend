@@ -16,9 +16,6 @@ const Animals = lazy(() => import("./pages/Animals"));
 const Setup = lazy(() => import("./pages/Setup"));
 const Analysis = lazy(() => import("./pages/Analysis"));
 const SignIn = lazy(() => import("./pages/Auth/SignIn"));
-const Register = lazy(() => import("./pages/Auth/Register"));
-const ForgotPassword = lazy(() => import("./pages/Auth/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/Auth/ResetPassword"));
 const Logout = lazy(() => import("./pages/Auth/Logout"));
 
 function App() {
@@ -34,10 +31,7 @@ function App() {
               {/* Public Routes: Sirf non-logged-in users ke liye */}
               <Route element={<PublicRoute />}>
                 <Route path="/login" element={<SignIn />} />
-                <Route path="/signup" element={<Register />} />
                 <Route path="/logout" element={<Logout />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
               </Route>
 
               {/* Private Routes: Sirf logged-in users ke liye */}
