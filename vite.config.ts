@@ -50,12 +50,16 @@ export default defineConfig({
             // backend URL is resolved at runtime (see src/config.ts), so this
             // must not hardcode a host.
             urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/api/'),
-            handler: 'StaleWhileRevalidate',
+            // NetworkFirst, not StaleWhileRevalidate: this is live telemetry/weather
+            // data. Always fetch fresh when online; the cache is only an offline
+            // fallback. (SWR served up-to-a-week-old API responses on first paint.)
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
+                maxAgeSeconds: 60 * 60 * 24, // 1 day (offline fallback only)
               },
               cacheableResponse: {
                 statuses: [0, 200],

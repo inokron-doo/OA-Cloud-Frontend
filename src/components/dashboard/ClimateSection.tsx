@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, lazy } from "react";
 import { weatherHistory, weatherForecast } from "../../api/barns";
 import { useBarn } from "../../context/BarnContext";
 import { getAnchorTime } from "../../api/anchorTime";
+import { parseUtc } from "../../utils/time";
 
 // Components
 const CombinedClimateChart = lazy(() => import("../CombinedClimateChart"));
@@ -68,18 +69,6 @@ const ClimateSection = () => {
                 return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}+00:00`;
             };
 
-            const parseNominalTime = (ts: string) => {
-                if (!ts) return 0;
-                const clean = ts.replace(/(Z|[+-]\d{2}:\d{2})$/, "");
-                const parts = clean.split("T");
-                if (parts.length === 2) {
-                    const [y, m, d] = parts[0].split("-").map(Number);
-                    const [hr, min, sec] = parts[1].split(":").map(Number);
-                    return new Date(y, m - 1, d, hr, min, sec).getTime();
-                }
-                return new Date(clean).getTime();
-            };
-
             const [historyRes, forecastRes] = await Promise.all([
                 weatherHistory(climateBarnId, undefined, toNominalUTC(anchorDomain[0]), toNominalUTC(anchorDomain[1]), 15), // 15min buckets
                 weatherForecast(climateBarnId, undefined, toNominalUTC(anchorDomain[0]), toNominalUTC(anchorDomain[1]))
@@ -88,38 +77,37 @@ const ClimateSection = () => {
             const unifiedHistory: any[] = [];
             let lastHistoryObs: any = null;
 
-            // Process History
+            // History → solid "actual" line (true-UTC instants).
             if (historyRes?.data && historyRes.data.length > 0) {
                 const historyData = [...historyRes.data];
-                historyData.sort((a, b) => new Date(a.obs_time).getTime() - new Date(b.obs_time).getTime());
-                
+                historyData.sort((a, b) => parseUtc(a.obs_time) - parseUtc(b.obs_time));
+
                 historyData.forEach(obs => {
                     unifiedHistory.push({
-                        time: parseNominalTime(obs.obs_time),
+                        time: parseUtc(obs.obs_time),
                         tempActual: obs.temperature,
                         humActual: obs.humidity,
                         thiActual: obs.thi,
                     });
                 });
-                
+
                 lastHistoryObs = historyData[historyData.length - 1];
             }
 
+            // Forecast → dashed line, joined to the end of the actual line.
             if (forecastRes?.forecast && forecastRes.forecast.length > 0) {
-                const forecastData = forecastRes.forecast;
-                
                 if (lastHistoryObs) {
                     unifiedHistory.push({
-                        time: parseNominalTime(lastHistoryObs.obs_time),
+                        time: parseUtc(lastHistoryObs.obs_time),
                         tempForecast: lastHistoryObs.temperature,
                         humForecast: lastHistoryObs.humidity,
                         thiForecast: lastHistoryObs.thi
                     });
                 }
 
-                forecastData.forEach((obs: any) => {
+                forecastRes.forecast.forEach((obs: any) => {
                     unifiedHistory.push({
-                        time: parseNominalTime(obs.forecast_for || obs.time),
+                        time: parseUtc(obs.forecast_for || obs.time),
                         tempForecast: obs.temperature,
                         humForecast: obs.humidity,
                         thiForecast: obs.thi,

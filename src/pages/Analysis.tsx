@@ -20,6 +20,7 @@ import ConsumptionChart from "../components/analysis/ConsumptionChart";
 import { feedingHistory } from "../api/feed";
 import { getLocationByBarn } from "../api/barns";
 import { useBarn } from "../context/BarnContext";
+import { parseUtc, parseLocalWallClock } from "../utils/time";
 
 import { FiDownload, FiCalendar, FiMapPin } from "react-icons/fi";
 
@@ -57,18 +58,17 @@ function transformHistory(history: any, locName: string, hoursRequested: number)
     const grouped = new Map<string, Point>();
 
     history.readings.forEach((reading: any) => {
-        const rawTime = reading.time || "";
-        let timeKey = rawTime;
-        if (rawTime.includes("T")) {
-            const datePart = rawTime.split("T")[0];
-            const timePart = rawTime.split("T")[1].substring(0, 5);
-            timeKey = hoursRequested > 24 ? `${datePart.substring(5)} ${timePart}` : timePart;
-        }
+        const ts = parseUtc(reading.time);
+        // Display label in the viewer's local (farm) timezone.
+        const d = new Date(ts);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const hhmm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const timeKey = hoursRequested > 24 ? `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${hhmm}` : hhmm;
 
         if (!grouped.has(timeKey)) {
             grouped.set(timeKey, {
                 time: timeKey,
-                ts: new Date(rawTime).getTime(),
+                ts,
                 locationName: locName,
                 feed_level: null,
                 temperature: null,
@@ -115,8 +115,8 @@ function computeStats(points: Point[], key: keyof Point): Stats {
 /** UTC-based label so consumption blocks line up with the main chart's UTC clock labels. */
 function blockLabel(ts: number, hours: number): string {
     const d = new Date(ts);
-    const hh = String(d.getUTCHours()).padStart(2, "0");
-    const md = `${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    const hh = String(d.getHours()).padStart(2, "0");
+    const md = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (hours > 168) return md;
     if (hours > 24) return `${md} ${hh}h`;
     return `${hh}h`;
@@ -336,7 +336,7 @@ function Analysis() {
         if (compareMode || !showEvents || !feedingEvents.length || !chartData.length) return [];
         return feedingEvents
             .map((ev) => {
-                const evTs = new Date(ev.timestamp || ev.start_datetime).getTime();
+                const evTs = parseLocalWallClock(ev.timestamp || ev.start_datetime);
                 if (Number.isNaN(evTs)) return null;
                 let nearest = chartData[0];
                 let best = Infinity;

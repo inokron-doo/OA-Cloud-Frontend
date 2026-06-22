@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
     ComposedChart,
@@ -26,10 +26,7 @@ const CombinedClimateChart: React.FC<CombinedClimateChartProps> = ({ data, isLoa
 
     const { active: tooltipActive, handlers: tooltipHandlers } = useTouchDismissTooltip();
 
-    const nowMs = useMemo(() => {
-        const now = new Date();
-        return now.getTime() + now.getTimezoneOffset() * 60000;
-    }, []);
+    const nowMs = Date.now();
 
     const formatTime = (timestamp: any) => {
         try {

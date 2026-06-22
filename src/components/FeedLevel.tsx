@@ -23,22 +23,13 @@ import SkeletonChart from "./SkeletonChart";
 import { useBarn } from "../context/BarnContext";
 import { getAnchorTime } from "../api/anchorTime";
 import { useTouchDismissTooltip } from "../hooks/useTouchDismissTooltip";
+import { parseUtc, parseLocalWallClock } from "../utils/time";
 
 type FeedingEventMarker = {
   time: number; // window start (or point time for detected refills)
   endTime: number | null; // window end; null => render as a single-point marker
   quantityKg: number | null;
   title: string | null; // used to correlate a predicted refill with its planned window
-};
-
-// The chart strips timezone offsets from reading timestamps to plot the stored
-// clock time directly ("nominal time symmetry"). Marker timestamps must be parsed
-// the same way so they line up with the feed-level line.
-const toNominalTime = (raw: any): number => {
-  if (typeof raw === "string") {
-    raw = raw.replace(/(Z|[+-]\d{2}:\d{2})$/, "");
-  }
-  return new Date(raw).getTime();
 };
 
 const normalizeFeedingEvents = (
@@ -58,11 +49,12 @@ const normalizeFeedingEvents = (
 
   const normalized: FeedingEventMarker[] = [
     ...eventsFromHistory.map((event: any): FeedingEventMarker => {
-      const start = toNominalTime(
+      // Farm-Calendar events are farm-local wall-clock (mislabelled UTC).
+      const start = parseLocalWallClock(
         event?.start_datetime || event?.timestamp || event?.time,
       );
       const rawEnd = event?.end_datetime ?? null;
-      const end = rawEnd ? toNominalTime(rawEnd) : null;
+      const end = rawEnd ? parseLocalWallClock(rawEnd) : null;
       const quantity =
         event?.feeding_activity?.quantity_kg ??
         event?.quantity_kg ??
@@ -78,7 +70,8 @@ const normalizeFeedingEvents = (
     }),
 
     ...eventsFromPredictions.map((event: any): FeedingEventMarker => {
-      const start = toNominalTime(
+      // Prediction-service refills are farm-local wall-clock (mislabelled UTC).
+      const start = parseLocalWallClock(
         event?.time || event?.timestamp || event?.start_datetime,
       );
       const quantity =
@@ -291,13 +284,8 @@ const FeedingChart: React.FC = () => {
                 reading.numeric_value !== null,
             )
             .map((reading: any) => {
-              let ts = reading.time;
-              // Strip timezone offsets (e.g., +00:00, Z) to enforce nominal time symmetry
-              if (ts) {
-                ts = ts.replace(/(Z|[+-]\d{2}:\d{2})$/, "");
-              }
               return {
-                time: new Date(ts).getTime(),
+                time: parseUtc(reading.time),
                 level: parseFloat(reading.numeric_value.toFixed(2)),
                 predicted: null,
               };
@@ -314,28 +302,18 @@ const FeedingChart: React.FC = () => {
             if (!predictions) return [];
 
             if (predictions.result?.forecast) {
-              const points = predictions.result.forecast.map((p: any) => {
-                let ts = p.time;
-                if (ts) {
-                  ts = ts.replace(/(Z|[+-]\d{2}:\d{2})$/, "");
-                }
-                return {
-                  timestamp: ts,
-                  level: p.level_percent,
-                };
-              });
+              const points = predictions.result.forecast.map((p: any) => ({
+                timestamp: p.time,
+                level: p.level_percent,
+              }));
 
               if (
                 predictions.result.current_level_percent !== undefined &&
                 predictions.result.current_time
               ) {
-                let ts = predictions.result.current_time;
-                if (ts) {
-                  ts = ts.replace(/(Z|[+-]\d{2}:\d{2})$/, "");
-                }
                 return [
                   {
-                    timestamp: ts,
+                    timestamp: predictions.result.current_time,
                     level: predictions.result.current_level_percent,
                   },
                   ...points,
@@ -346,20 +324,14 @@ const FeedingChart: React.FC = () => {
             }
 
             if (Array.isArray(predictions.predictions)) {
-              return predictions.predictions.map((p: any) => {
-                let ts = p.timestamp;
-                if (ts) {
-                  ts = ts.replace(/(Z|[+-]\d{2}:\d{2})$/, "");
-                }
-                return {
-                  timestamp: ts,
-                  level:
-                    p.predicted_feed_level_percentage ??
-                    p.predicted_level ??
-                    p.feed_level ??
-                    0,
-                };
-              });
+              return predictions.predictions.map((p: any) => ({
+                timestamp: p.timestamp,
+                level:
+                  p.predicted_feed_level_percentage ??
+                  p.predicted_level ??
+                  p.feed_level ??
+                  0,
+              }));
             }
 
             return [];
@@ -368,7 +340,9 @@ const FeedingChart: React.FC = () => {
           if (predictionList.length > 0) {
             const predictionMap = new Map(
               predictionList.map((p) => [
-                new Date(p.timestamp).getTime(),
+                // Prediction-service timestamps are farm-local wall-clock
+                // (mislabelled "+00:00"), unlike the true-UTC readings above.
+                parseLocalWallClock(p.timestamp),
                 parseFloat(p.level.toFixed(2)),
               ]),
             );
@@ -379,7 +353,7 @@ const FeedingChart: React.FC = () => {
             }));
 
             predictionList.forEach((p) => {
-              const predTime = new Date(p.timestamp).getTime();
+              const predTime = parseLocalWallClock(p.timestamp);
 
               const histTime = historyData.find((h) => h.time === predTime);
 
